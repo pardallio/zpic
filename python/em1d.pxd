@@ -65,7 +65,7 @@ cdef extern from "../em1d/particles.h":
 	void spec_new( t_species* spec, char name[], const float m_q, const int ppc,
 				  const float ufl[], const float uth[],
 				  const int nx, float box, const float dt, t_density* density )
-
+	void spec_advance(t_species* spec, t_emf* emf, t_current* current)
 	cdef int CHARGE
 	cdef int PHA
 	cdef int PARTICLES
@@ -110,6 +110,8 @@ cdef extern from "../em1d/emf.h":
 		t_vfld *B
 		t_vfld *E_buf
 		t_vfld *B_buf
+		t_vfld *E_part;
+		t_vfld *B_part;
 		int nx
 		int gc[2]
 		float box
@@ -134,8 +136,10 @@ cdef extern from "../em1d/emf.h":
 		float polarization
 
 	void emf_report( const t_emf *emf, const char field, const char fc )
+	void emf_advance( t_emf* emf, t_current* current)
 	void emf_get_energy( const t_emf *emf, double energy[] )
 	void emf_set_ext_fld( t_emf* const emf, t_emf_ext_fld* ext_fld )
+	void emf_prep_ext_fld( t_emf* const emf)
 
 #########################################################################################
 # Current
@@ -165,6 +169,8 @@ cdef extern from "../em1d/current.h":
 		int bc_type;
 
 	void current_report( const t_current *current, const char jc )
+	void current_zero( const t_current *current)
+	void current_update( const t_current *current )
 
 
 #########################################################################################
@@ -192,5 +198,3 @@ cdef extern from "../em1d/simulation.h":
 	void sim_report_energy( t_simulation* sim )
 
 	void sim_delete( t_simulation* sim )
-
-
