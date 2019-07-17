@@ -781,7 +781,6 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 	qnx = spec -> q *  spec->dx / spec->dt;
 
 	const int nx0 = spec -> nx;
-
 	double energy = 0;
 
 	// Advance particles
@@ -805,7 +804,6 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 		// interpolate fields
 		interpolate_fld( emf -> E_part, emf -> B_part, &spec -> part[i], &Ep, &Bp );
 		// Ep.x = Ep.y = Ep.z = Bp.x = Bp.y = Bp.z = 0;
-
 		// advance u using Boris scheme
 		Ep.x *= tem;
 		Ep.y *= tem;

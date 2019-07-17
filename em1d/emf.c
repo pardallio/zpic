@@ -302,9 +302,8 @@ void mur_abc( t_emf *emf ) {
 
 	if ( emf -> bc_type == EMF_BC_OPEN) {
 		// lower boundary
-        emf -> mur_fld[0].y = emf -> mur_tmp[0].y + S * (emf -> E[0].y - emf -> mur_fld[0].y);
+				emf -> mur_fld[0].y = emf -> mur_tmp[0].y + S * (emf -> E[0].y - emf -> mur_fld[0].y);
         emf -> mur_fld[0].z = emf -> mur_tmp[0].z + S * (emf -> E[0].z - emf -> mur_fld[0].z);
-
         emf ->  E[-1].y = emf -> mur_fld[0].y;
         emf ->  E[-1].z = emf -> mur_fld[0].z;
 
@@ -313,15 +312,14 @@ void mur_abc( t_emf *emf ) {
         emf -> mur_tmp[0].z = emf -> E[0].z;
 
 		// upper boundary
-        emf -> mur_fld[1].y = emf -> mur_tmp[1].y + S * (emf -> E[nx-1].y - emf -> mur_fld[1].y);
-        emf -> mur_fld[1].z = emf -> mur_tmp[1].z + S * (emf -> E[nx-1].z - emf -> mur_fld[1].z);
-
-        emf ->  E[nx].y = emf -> mur_fld[1].y;
-        emf ->  E[nx].z = emf -> mur_fld[1].z;
+        emf -> mur_fld[1].y = emf -> mur_tmp[1].y + S * (emf -> E[nx].y - emf -> mur_fld[1].y);
+        emf -> mur_fld[1].z = emf -> mur_tmp[1].z + S * (emf -> E[nx].z - emf -> mur_fld[1].z);
+        emf ->  E[nx+1].y = emf -> mur_fld[1].y;
+        emf ->  E[nx+1].z = emf -> mur_fld[1].z;
 
         // Store Eperp for next iteration
-        emf -> mur_tmp[1].y = emf -> E[nx-1].y;
-        emf -> mur_tmp[1].z = emf -> E[nx-1].z;
+        emf -> mur_tmp[1].y = emf -> E[nx].y;
+        emf -> mur_tmp[1].z = emf -> E[nx].z;
 	}
 
 }
@@ -342,9 +340,9 @@ void yee_b( t_emf *emf, const float dt )
     const t_vfld* const restrict E = emf -> E;
 
 	dt_dx = dt / emf->dx;
-
 	// Canonical implementation
 	for (i=-1; i<=emf->nx; i++) {
+
 		// B[ i ].x += 0;  // Bx does not evolve in 1D
 		B[ i ].y += (   dt_dx * ( E[i+1].z - E[ i ].z) );
 
@@ -449,7 +447,6 @@ void emf_advance( t_emf *emf, const t_current *current )
 {
 	uint64_t t0 = timer_ticks();
 	const float dt = emf->dt;
-
 	// Advance EM field using Yee algorithm modified for having E and B time centered
 	yee_b( emf, dt/2.0f );
 
@@ -524,19 +521,26 @@ void emf_set_ext_fld( t_emf* const emf, t_emf_ext_fld* ext_fld ) {
 	    		fprintf(stderr, "Invalid external field type, aborting.\n" );
 				exit(-1);
 	    }
-
-		// Allocate space for additional field grids
-		size_t size = (emf->gc[0] + emf->nx + emf->gc[1]) * sizeof( t_vfld ) ;
-		emf -> ext_fld.E_part_buf = malloc( size );
-		emf -> ext_fld.B_part_buf = malloc( size );
-
-		emf -> E_part = emf->ext_fld.E_part_buf + emf->gc[0];
-	    emf -> B_part = emf->ext_fld.B_part_buf + emf->gc[0];
+			// Allocate space for additional field grids
+			emf_prep_ext_fld(emf);
 
 	    // Initialize values on E/B_part grids
 	    emf_update_part_fld( emf );
 
 	}
+}
+
+void emf_prep_ext_fld(t_emf* const emf){
+	// Allocate space for additional field grids
+
+	size_t size = (emf->gc[0] + emf->nx + emf->gc[1]) * sizeof( t_vfld ) ;
+	emf -> ext_fld.E_part_buf = malloc( size );
+	emf -> ext_fld.B_part_buf = malloc( size );
+
+	emf -> E_part = emf->ext_fld.E_part_buf + emf->gc[0];
+	emf -> B_part = emf->ext_fld.B_part_buf + emf->gc[0];
+
+
 }
 
 /**
@@ -568,5 +572,3 @@ void emf_update_part_fld( t_emf* const emf ) {
 		B_part[i] = b;
 	}
 }
-
-

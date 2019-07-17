@@ -101,6 +101,7 @@ void emf_report( const t_emf *emf, const char field, const char fc );
 
 void emf_add_laser( t_emf* const emf, t_emf_laser* laser );
 void emf_set_ext_fld( t_emf* const emf, t_emf_ext_fld* ext_fld );
+void emf_prep_ext_fld( t_emf* const emf);
 
 void emf_advance( t_emf *emf, const t_current *current );
 
