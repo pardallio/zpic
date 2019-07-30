@@ -351,14 +351,14 @@ cdef class EMF:
 
 	@property
 	def E_part( self ):
-		cdef float *buf = <float *> self._thisptr.E_part
+		cdef float *buf = <float *> self._thisptr.ext_fld.E_part_buf
 		cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
 		tmp = np.asarray( <float [:size, :3]> buf )
 		return tmp[  : , : ]
 
 	@property
 	def B_part( self ):
-		cdef float *buf = <float *> self._thisptr.B_part
+		cdef float *buf = <float *> self._thisptr.ext_fld.B_part_buf
 		cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
 		tmp = np.asarray( <float [:size, :3]> buf )
 		return tmp[ :,: ]
@@ -396,6 +396,7 @@ class Ext_Field:
 		odx_e[0,0] = 0.5*ldx
 		odx_e[0,1] = 0.0*ldx
 		odx_e[0,2] = 0.0*ldx
+		sim.emf.prep_ext_fld()
 		self.odx_b=odx_b
 		self.odx_e=odx_e
 		self.ext_Efld=np.empty([3,len(sim.emf.E_part[:,0])])
@@ -806,15 +807,15 @@ cdef class Simulation:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				self.report( self )
 				sim_iter( self._thisptr )
-				self.n = self.n+1
-				self.t = self.n * self._thisptr.dt
+				#self.n = self.n+1
+				#self.t = self.n * self._thisptr.dt
 		else:
 			# Run simulation without diagnostics
 			while self.t <= tmax:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				sim_iter( self._thisptr )
-				self.n = self.n+1
-				self.t = self.n * self._thisptr.dt
+				#self.n = self.n+1
+				#self.t = self.n * self._thisptr.dt
 
 		print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 		print("\nDone.")

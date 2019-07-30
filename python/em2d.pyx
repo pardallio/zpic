@@ -103,6 +103,17 @@ cdef class Species:
 			self._this.ufl, self._this.uth,
 			nx, box, dt, self._density._thisptr )
 
+	cdef species_advance(self, t_emf* emf, t_current* current):
+		spec_advance(self._thisptr,emf,current)
+
+	def advance(self,sim):
+		cdef EMF emf
+		cdef Current current
+		emf = sim.emf
+		current=sim.current
+		self.species_advance(emf._thisptr,current._thisptr)
+
+
 	def report( self, str type, *, list quants = [], list pha_nx = [], list pha_range = [] ):
 		cdef int _nx[2]
 		cdef float _range[2][2]
@@ -180,6 +191,45 @@ cdef class EMF:
 		emf_get_energy( self._thisptr, energy )
 		return np.array( energy, dtype = np.float64 )
 
+	cdef emfld_advance(self, t_current* current):
+		emf_advance(self._thisptr,current)
+
+	def advance(self,sim):
+		cdef Current current
+		current=sim.current
+		self.emfld_advance(current._thisptr)
+
+
+	def set_ext_fld( self, str type, *, list E0 = None, list B0 = None ):
+		cdef t_emf_ext_fld ext_fld;
+		cdef float buf[3];
+
+		ext_fld.type = self._ext_fld_types[type]
+
+		if ( E0 ):
+			buf = np.array( E0, dtype=np.float32)
+			ext_fld.E0.x = buf[0]
+			ext_fld.E0.y = buf[1]
+			ext_fld.E0.z = buf[2]
+		else:
+			ext_fld.E0.x = 0
+			ext_fld.E0.y = 0
+			ext_fld.E0.z = 0
+
+		if ( B0 ):
+			buf = np.array( B0, dtype=np.float32)
+			ext_fld.B0.x = buf[0]
+			ext_fld.B0.y = buf[1]
+			ext_fld.B0.z = buf[2]
+		else:
+			ext_fld.B0.x = 0
+			ext_fld.B0.y = 0
+			ext_fld.B0.z = 0
+
+		emf_set_ext_fld( self._thisptr, &ext_fld )
+	def prep_ext_fld(self):
+		emf_prep_ext_fld( self._thisptr )
+
 	@property
 	def nx(self):
 		return self._thisptr.nx
@@ -245,6 +295,136 @@ cdef class EMF:
 		tmp = np.asarray( <float [:ny,:nx,:3]> buf )
 		return tmp[ self._thisptr.gc[1][0] : self._thisptr.gc[1][0] + self._thisptr.nx[1], \
 		            self._thisptr.gc[0][0] : self._thisptr.gc[1][0] + self._thisptr.nx[0], 2]
+
+	@property
+	def E_part( self ):
+		cdef float *buf = <float *> self._thisptr.ext_fld.E_part_buf
+		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
+		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
+		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
+		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		return tmp[  : , :,: ]
+
+	@property
+	def B_part( self ):
+		cdef float *buf = <float *> self._thisptr.ext_fld.B_part_buf
+		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
+		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
+		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
+		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		return tmp[  : , :,: ]
+
+	@property
+	def E_buf( self ):
+		cdef float *buf = <float *> self._thisptr.E_buf
+		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
+		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
+		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
+		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		return tmp[  : , :,: ]
+
+	@property
+	def B_buf( self ):
+		cdef float *buf = <float *> self._thisptr.B_buf
+		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
+		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
+		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
+		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		return tmp[  : , :,: ]
+
+class Ext_Field:
+	def __init__(self,sim,ext_B=None,ext_E=None):
+		self.dx=sim.dx
+		self.dt=sim.dt
+		self.n_move=0
+		self.ext_E=ext_E
+		self.ext_B=ext_B
+		self.if_move=True if (sim.if_move==1) else False
+		# set the grid offsets
+		ldx=sim.dx
+		odx_b=np.empty([2,3])
+		odx_b[0,0] = 0.0*ldx[0]
+		odx_b[0,1] = 0.5*ldx[0]
+		odx_b[0,2] = 0.5*ldx[0]
+		odx_b[1,0] = 0.5*ldx[1]
+		odx_b[1,1] = 0.0*ldx[1]
+		odx_b[1,2] = 0.5*ldx[1]
+
+		odx_e=np.empty([2,3])
+		odx_e[0,0] = 0.5*ldx[0]
+		odx_e[0,1] = 0.0*ldx[0]
+		odx_e[0,2] = 0.0*ldx[0]
+		odx_b[1,0] = 0.0*ldx[1]
+		odx_b[1,1] = 0.5*ldx[1]
+		odx_b[1,2] = 0.0*ldx[1]
+
+
+		self.odx_b=odx_b
+		self.odx_e=odx_e
+		sim.emf.prep_ext_fld()
+		#sim.emf.tgc[0][0] + emf->nx[0] + emf->gc[0][1]) * (emf->gc[1][0] + emf->nx[1] + emf->gc[1][1]
+		self.ext_Efld=np.empty_like(sim.emf.E_buf)
+		self.ext_Bfld=np.empty_like(sim.emf.B_buf)
+		nx=np.shape(sim.emf.E_part)[0]
+		ny=np.shape(sim.emf.E_part)[1]
+		self.calc_ext(sim,(0,0),(nx,ny))
+
+	def move_win_ext(self,sim):
+		nx=np.shape(sim.emf.E_part)[0]
+		ny=np.shape(sim.emf.E_part)[1]
+		if(sim.iter*self.dt>self.dx[0]*self.n_move+1):
+			for i in range(nx-2):
+				self.ext_Efld[i,:,:]=self.ext_Efld[i+1,:,:]
+				self.ext_Bfld[i,:,:]=self.ext_Bfld[i+1,:,:]
+
+			self.calc_ext(sim,(nx-2,nx),(0,ny))
+			self.n_move=self.n_move+1
+
+	def calc_ext(self,sim,lb,ub):
+		for i in range(lb[1],ub[1]):
+			x_eval_b = (i-1)*sim.dx[0] + np.array(self.odx_b[0,:])
+			x_eval_e = (i-1)*sim.dx[0] + np.array(self.odx_e[0, :])
+
+			for j in range(lb[0],ub[0]):
+				if(self.ext_B):
+					y_eval_b=(j-1)*sim.dx[1] + np.array(self.odx_b[1,:])
+					#x dim
+					B_eval = self.ext_B(x_eval_b[0],y_eval_b[0])[0]
+					self.ext_Bfld[i,j,0]=B_eval
+					#y dim
+					B_eval = self.ext_B(x_eval_b[1],y_eval_b[1])[1]
+					self.ext_Bfld[i,j,1]=B_eval
+					#z dim
+					B_eval = self.ext_B(x_eval_b[2],y_eval_b[2])[2]
+					self.ext_Bfld[i,j,2]=B_eval
+				if(self.ext_E):
+					y_eval_e=(j-1)*sim.dx[1] + np.array(self.odx_e[1,:])
+					#x dim
+					E_eval = self.ext_E(x_eval_e[0],y_eval_e[0])[0]
+					self.ext_Efld[i,j,0]=E_eval
+					#y dim
+					E_eval = self.ext_E(x_eval_e[1],y_eval_e[0])[1]
+					self.ext_Efld[i,j,1]=E_eval
+					#z dim
+					E_eval = self.ext_E(x_eval_e[2],y_eval_e[0])[2]
+					self.ext_Efld[i,j,2]=E_eval
+
+	def update_ext(self,sim):
+		if self.if_move:
+			self.move_win_ext(sim)
+		sim.emf.prep_ext_fld()
+		nx=np.shape(sim.emf.E_part)[0]
+		ny=np.shape(sim.emf.E_part)[1]
+
+		for j in range(nx):
+			for i in range(ny):
+				sim.emf.B_part[j,i,0]=sim.emf.B_buf[j,i,0]+self.ext_Bfld[j,i,0]
+				sim.emf.B_part[j,i,1]=sim.emf.B_buf[j,i,1]+self.ext_Bfld[j,i,1]
+				sim.emf.B_part[j,i,2]=sim.emf.B_buf[j,i,2]+self.ext_Bfld[j,i,2]
+
+				sim.emf.E_part[j,i,0]=sim.emf.E_buf[j,i,0]+self.ext_Efld[j,i,0]
+				sim.emf.E_part[j,i,1]=sim.emf.E_buf[j,i,1]+self.ext_Efld[j,i,1]
+				sim.emf.E_part[j,i,2]=sim.emf.E_buf[j,i,2]+self.ext_Efld[j,i,2]
 
 cdef class Laser:
 	"""Extension type to wrap t_emf_laser objects"""
@@ -377,6 +557,11 @@ cdef class Current:
 
 	def report( self, char jc ):
 		current_report( self._thisptr, jc )
+
+	def zero(self):
+		current_zero(self._thisptr)
+	def update(self):
+		current_update(self._thisptr)
 
 	@property
 	def Jx( self ):
@@ -531,6 +716,25 @@ cdef class Simulation:
 		self.n = self.n+1
 		self.t = self.n * self._thisptr.dt
 
+
+	def get_species(self):
+		return self.species
+
+	def advance(self):
+		self.n = self.n+1
+		self.t = self.n * self._thisptr.dt
+
+	def iter( self ):
+		self.current.zero()
+		for spec in self.species:
+			spec.advance(self)
+		self.current.update()
+		self.emf.advance(self)
+
+		#sim_iter( self._thisptr )
+		self.n = self.n+1
+		self.t = self.n * self._thisptr.dt
+
 	def run( self, float tmax ):
 
 		if ( tmax < self.t ):
@@ -546,15 +750,15 @@ cdef class Simulation:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				self.report( self )
 				sim_iter( self._thisptr )
-				self.n = self.n+1
-				self.t = self.n * self._thisptr.dt
+				#self.n = self.n+1
+				#self.t = self.n * self._thisptr.dt
 		else:
 			# Run simulation without diagnostics
 			while self.t <= tmax:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				sim_iter( self._thisptr )
-				self.n = self.n+1
-				self.t = self.n * self._thisptr.dt
+				#self.n = self.n+1
+				#self.t = self.n * self._thisptr.dt
 
 		print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 		print("\nDone.")
@@ -576,6 +780,14 @@ cdef class Simulation:
 		return self.t
 
 	@property
+	def if_move(self):
+		return self._thisptr.moving_window
+
+	@property
+	def dt(self):
+		return self._thisptr.dt
+
+	@property
 	def dx(self):
 		return self.emf.dx
 
@@ -594,8 +806,3 @@ cdef class Simulation:
 	@report.setter
 	def report( self, f ):
 		self.report = f
-
-
-
-
-
