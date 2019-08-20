@@ -381,11 +381,11 @@ class Ext_Field:
 			self.n_move=self.n_move+1
 
 	def calc_ext(self,sim,lb,ub):
-		for i in range(lb[1],ub[1]):
+		for i in range(lb[0],ub[0]):
 			x_eval_b = (i-1)*sim.dx[0] + np.array(self.odx_b[0,:])
 			x_eval_e = (i-1)*sim.dx[0] + np.array(self.odx_e[0, :])
 
-			for j in range(lb[0],ub[0]):
+			for j in range(lb[1],ub[1]):
 				if(self.ext_B):
 					y_eval_b=(j-1)*sim.dx[1] + np.array(self.odx_b[1,:])
 					#x dim
