@@ -692,8 +692,8 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 		uz = spec -> part[i].uz;
 
 		// interpolate fields
-		interpolate_fld( emf -> E, emf -> B, emf -> nrow, &spec -> part[i], &Ep, &Bp );
-		
+		interpolate_fld( emf -> E_part, emf -> B_part, emf -> nrow, &spec -> part[i], &Ep, &Bp );
+
 		// advance u using Boris scheme
 		Ep.x *= tem;
 		Ep.y *= tem;
@@ -715,7 +715,7 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 		ux = utx + uty*Bp.z - utz*Bp.y;
 		uy = uty + utz*Bp.x - utx*Bp.z;
 		uz = utz + utx*Bp.y - uty*Bp.x;
-		
+
 		// Perform second half of the rotation
 		
 		Bp.x *= otsq;
@@ -725,12 +725,12 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 		utx += uy*Bp.z - uz*Bp.y;
 		uty += uz*Bp.x - ux*Bp.z;
 		utz += ux*Bp.y - uy*Bp.x;
-		
+
 		// Perform second half of electric field acceleration
 		ux = utx + Ep.x;
 		uy = uty + Ep.y;
 		uz = utz + Ep.z;
-		
+
 		// Store new momenta
 		spec -> part[i].ux = ux;
 		spec -> part[i].uy = uy;
@@ -741,7 +741,7 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 				
 		dx = dt_dx * rg * ux;
 		dy = dt_dy * rg * uy;
-		
+
 		x1 = spec -> part[i].x + dx; 
 		y1 = spec -> part[i].y + dy;
 		
@@ -802,7 +802,7 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 	}
 	
 	// Sort species at every 16 time steps
-	if ( ! (spec -> iter % 16) ) spec_sort( spec );
+	//if ( ! (spec -> iter % 16) ) spec_sort( spec );
 
 
     // Move simulation window if needed
