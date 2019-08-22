@@ -409,6 +409,8 @@ class Ext_Field:
 					E_eval = self.ext_E(x_eval_e[2],y_eval_e[0])[2]
 					self.ext_Efld[i,j,2]=E_eval
 
+
+
 	def update_ext(self,sim):
 		if self.if_move:
 			self.move_win_ext(sim)
@@ -425,7 +427,7 @@ class Ext_Field:
 				sim.emf.E_part[j,i,0]=sim.emf.E_buf[j,i,0]+self.ext_Efld[j,i,0]
 				sim.emf.E_part[j,i,1]=sim.emf.E_buf[j,i,1]+self.ext_Efld[j,i,1]
 				sim.emf.E_part[j,i,2]=sim.emf.E_buf[j,i,2]+self.ext_Efld[j,i,2]
-
+				#print(sim.emf.E_buf[j,i,1],self.ext_Efld[j,i,1])
 cdef class Laser:
 	"""Extension type to wrap t_emf_laser objects"""
 

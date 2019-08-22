@@ -652,6 +652,8 @@ void emf_prep_ext_fld(t_emf* const emf){
 	size_t size = (emf->gc[0][0] + emf->nx[0] + emf->gc[0][1]) * (emf->gc[1][0] + emf->nx[1] + emf->gc[1][1]) * sizeof( t_vfld );
 	emf -> ext_fld.E_part_buf = malloc( size );
 	emf -> ext_fld.B_part_buf = malloc( size );
+	memset( emf -> ext_fld.E_part_buf, 0, size );
+	memset( emf -> ext_fld.B_part_buf, 0, size );
 
 	emf -> E_part = emf->ext_fld.E_part_buf + emf->gc[0][0] + emf->gc[1][0] * emf->nrow;
 	emf -> B_part = emf->ext_fld.B_part_buf + emf->gc[0][0] + emf->gc[1][0] * emf->nrow;
