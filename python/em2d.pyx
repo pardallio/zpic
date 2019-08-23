@@ -415,7 +415,7 @@ class Ext_Field:
 		sim.emf.prep_ext_fld()
 		nx=np.shape(sim.emf.E_part)[0]
 		ny=np.shape(sim.emf.E_part)[1]
-
+		
 		for j in range(nx):
 			for i in range(ny):
 				sim.emf.B_part[j,i,0]=sim.emf.B_buf[j,i,0]+self.ext_Bfld[j,i,0]
