@@ -302,7 +302,7 @@ cdef class EMF:
 		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
 		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
 		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
-		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		tmp = np.asarray( <float [:ny,:nx, :3]> buf )
 		return tmp[  : , :,: ]
 
 	@property
@@ -311,7 +311,7 @@ cdef class EMF:
 		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
 		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
 		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
-		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		tmp = np.asarray( <float [:ny,:nx, :3]> buf )
 		return tmp[  : , :,: ]
 
 	@property
@@ -320,7 +320,7 @@ cdef class EMF:
 		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
 		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
 		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
-		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		tmp = np.asarray( <float [:ny,:nx, :3]> buf )
 		return tmp[  : , :,: ]
 
 	@property
@@ -329,7 +329,7 @@ cdef class EMF:
 		cdef int nx = self._thisptr.gc[0][0] + self._thisptr.nx[0] + self._thisptr.gc[0][1]
 		cdef int ny = self._thisptr.gc[1][0] + self._thisptr.nx[1] + self._thisptr.gc[1][1]
 		#cdef int size = self._thisptr.gc[0] + self._thisptr.nx + self._thisptr.gc[1]
-		tmp = np.asarray( <float [:nx,:ny, :3]> buf )
+		tmp = np.asarray( <float [:ny,:nx, :3]> buf )
 		return tmp[  : , :,: ]
 
 class Ext_Field:
@@ -365,8 +365,8 @@ class Ext_Field:
 		#sim.emf.tgc[0][0] + emf->nx[0] + emf->gc[0][1]) * (emf->gc[1][0] + emf->nx[1] + emf->gc[1][1]
 		self.ext_Efld=np.empty_like(sim.emf.E_buf)
 		self.ext_Bfld=np.empty_like(sim.emf.B_buf)
-		nx=np.shape(sim.emf.E_part)[0]
-		ny=np.shape(sim.emf.E_part)[1]
+		nx=np.shape(sim.emf.E_part)[1]
+		ny=np.shape(sim.emf.E_part)[0]
 		self.calc_ext(sim,(0,0),(nx,ny))
 
 	def move_win_ext(self,sim):
@@ -374,20 +374,19 @@ class Ext_Field:
 		ny=np.shape(sim.emf.E_part)[1]
 		if(sim.iter*self.dt>self.dx[0]*self.n_move+1):
 			for i in range(nx-2):
-				self.ext_Efld[i,:,:]=self.ext_Efld[i+1,:,:]
-				self.ext_Bfld[i,:,:]=self.ext_Bfld[i+1,:,:]
+				self.ext_Efld[:,i,:]=self.ext_Efld[:,i+1,:]
+				self.ext_Bfld[:,i,:]=self.ext_Bfld[:,i+1,:]
 
 			self.calc_ext(sim,(nx-2,nx),(0,ny))
 			self.n_move=self.n_move+1
 
 	def calc_ext(self,sim,lb,ub):
-		for i in range(lb[0],ub[0]):
-			x_eval_b = (i-1)*sim.dx[0] + np.array(self.odx_b[0,:])
-			x_eval_e = (i-1)*sim.dx[0] + np.array(self.odx_e[0, :])
-
-			for j in range(lb[1],ub[1]):
+		for i in range(lb[1],ub[1]):
+			y_eval_b=(i-1)*sim.dx[1] + np.array(self.odx_b[1,:])
+			y_eval_e=(i-1)*sim.dx[1] + np.array(self.odx_e[1,:])
+			for j in range(lb[0],ub[0]):
 				if(self.ext_B):
-					y_eval_b=(j-1)*sim.dx[1] + np.array(self.odx_b[1,:])
+					x_eval_b = (j-1)*sim.dx[0] + np.array(self.odx_b[0,:])
 					#x dim
 					B_eval = self.ext_B(x_eval_b[0],y_eval_b[0])[0]
 					self.ext_Bfld[i,j,0]=B_eval
@@ -398,7 +397,7 @@ class Ext_Field:
 					B_eval = self.ext_B(x_eval_b[2],y_eval_b[2])[2]
 					self.ext_Bfld[i,j,2]=B_eval
 				if(self.ext_E):
-					y_eval_e=(j-1)*sim.dx[1] + np.array(self.odx_e[1,:])
+					x_eval_e = (j-1)*sim.dx[0] + np.array(self.odx_e[0,:])
 					#x dim
 					E_eval = self.ext_E(x_eval_e[0],y_eval_e[0])[0]
 					self.ext_Efld[i,j,0]=E_eval
@@ -415,11 +414,11 @@ class Ext_Field:
 		if self.if_move:
 			self.move_win_ext(sim)
 		sim.emf.prep_ext_fld()
-		nx=np.shape(sim.emf.E_part)[0]
-		ny=np.shape(sim.emf.E_part)[1]
-		
-		for j in range(nx):
-			for i in range(ny):
+		nx=np.shape(sim.emf.E_part)[1]
+		ny=np.shape(sim.emf.E_part)[0]
+
+		for j in range(ny):
+			for i in range(nx):
 				sim.emf.B_part[j,i,0]=sim.emf.B_buf[j,i,0]+self.ext_Bfld[j,i,0]
 				sim.emf.B_part[j,i,1]=sim.emf.B_buf[j,i,1]+self.ext_Bfld[j,i,1]
 				sim.emf.B_part[j,i,2]=sim.emf.B_buf[j,i,2]+self.ext_Bfld[j,i,2]
