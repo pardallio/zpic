@@ -730,7 +730,6 @@ void spec_advance( t_species* spec, t_emf* emf, t_current* current )
 		ux = utx + Ep.x;
 		uy = uty + Ep.y;
 		uz = utz + Ep.z;
-
 		// Store new momenta
 		spec -> part[i].ux = ux;
 		spec -> part[i].uy = uy;

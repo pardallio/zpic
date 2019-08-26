@@ -22,12 +22,18 @@ cdef class Density:
 
 	cdef object custom_func
 
-	def __cinit__( self, *, int type = UNIFORM, float n = 1.0, float start = 0.0, float end = 0.0,
+	_density_types = {'uniform':UNIFORM,
+										'step':STEP,
+										'slab':SLAB,
+										'ramp':RAMP,
+										'custom':CUSTOM}
+
+	def __cinit__( self, *, str type = 'uniform', float n = 1.0, float start = 0.0, float end = 0.0,
 		           list ramp = [0.,0.], custom = None):
 		# Allocates the structure and initializes all elements to 0
 		self._thisptr = <t_density *> calloc(1, sizeof(t_density))
 
-		self._thisptr.type = <density_type> type
+		self._thisptr.type = <density_type> self._density_types[type]
 		self._thisptr.n = n
 		self._thisptr.start = start
 		self._thisptr.end = end
@@ -365,8 +371,3 @@ cdef class Simulation:
 	@report.setter
 	def report( self, f ):
 		self.report = f
-
-
-
-
-
