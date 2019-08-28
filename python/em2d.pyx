@@ -333,13 +333,14 @@ cdef class EMF:
 		return tmp[  : , :,: ]
 
 class Ext_Field:
-	def __init__(self,sim,ext_B=None,ext_E=None):
+	def __init__(self,sim,ext_B=None,ext_E=None,dynamic=False):
 		self.dx=sim.dx
 		self.dt=sim.dt
 		self.n_move=0
 		self.ext_E=ext_E
 		self.ext_B=ext_B
 		self.if_move=True if (sim.if_move==1) else False
+		self.dynamic=dynamic
 		# set the grid offsets
 		ldx=sim.dx
 		odx_b=np.empty([2,3])
@@ -388,34 +389,37 @@ class Ext_Field:
 				if(self.ext_B):
 					x_eval_b = (j-1)*sim.dx[0] + np.array(self.odx_b[0,:])
 					#x dim
-					B_eval = self.ext_B(x_eval_b[0],y_eval_b[0])[0]
+					B_eval = self.ext_B(x_eval_b[0],y_eval_b[0],sim.t)[0]
 					self.ext_Bfld[i,j,0]=B_eval
 					#y dim
-					B_eval = self.ext_B(x_eval_b[1],y_eval_b[1])[1]
+					B_eval = self.ext_B(x_eval_b[1],y_eval_b[1],sim.t)[1]
 					self.ext_Bfld[i,j,1]=B_eval
 					#z dim
-					B_eval = self.ext_B(x_eval_b[2],y_eval_b[2])[2]
+					B_eval = self.ext_B(x_eval_b[2],y_eval_b[2],sim.t)[2]
 					self.ext_Bfld[i,j,2]=B_eval
 				if(self.ext_E):
 					x_eval_e = (j-1)*sim.dx[0] + np.array(self.odx_e[0,:])
 					#x dim
-					E_eval = self.ext_E(x_eval_e[0],y_eval_e[0])[0]
+					E_eval = self.ext_E(x_eval_e[0],y_eval_e[0],sim.t)[0]
 					self.ext_Efld[i,j,0]=E_eval
 					#y dim
-					E_eval = self.ext_E(x_eval_e[1],y_eval_e[0])[1]
+					E_eval = self.ext_E(x_eval_e[1],y_eval_e[0],sim.t)[1]
 					self.ext_Efld[i,j,1]=E_eval
 					#z dim
-					E_eval = self.ext_E(x_eval_e[2],y_eval_e[0])[2]
+					E_eval = self.ext_E(x_eval_e[2],y_eval_e[0],sim.t)[2]
 					self.ext_Efld[i,j,2]=E_eval
 
 
 
 	def update_ext(self,sim):
-		if self.if_move:
-			self.move_win_ext(sim)
 		sim.emf.prep_ext_fld()
 		nx=np.shape(sim.emf.E_part)[1]
 		ny=np.shape(sim.emf.E_part)[0]
+
+		if self.dynamic:
+			self.calc_ext(sim,(0,0),(nx,ny))
+		if self.if_move:
+			self.move_win_ext(sim)
 
 		for j in range(ny):
 			for i in range(nx):
