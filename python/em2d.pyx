@@ -755,15 +755,15 @@ cdef class Simulation:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				self.report( self )
 				sim_iter( self._thisptr )
-				#self.n = self.n+1
-				#self.t = self.n * self._thisptr.dt
+				self.n = self.n+1
+				self.t = self.n * self._thisptr.dt
 		else:
 			# Run simulation without diagnostics
 			while self.t <= tmax:
 				print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 				sim_iter( self._thisptr )
-				#self.n = self.n+1
-				#self.t = self.n * self._thisptr.dt
+				self.n = self.n+1
+				self.t = self.n * self._thisptr.dt
 
 		print('n = {:d}, t = {:g}'.format(self.n,self.t), end = '\r')
 		print("\nDone.")
