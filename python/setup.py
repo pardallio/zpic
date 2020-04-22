@@ -15,7 +15,7 @@ cflags += ' -std=c99'
 sysconfig._config_vars['CFLAGS'] = cflags
 
 # Set custom compiler
-sysconfig._config_vars['CC'] = 'gcc'
+sysconfig._config_vars['CC'] = 'gcc-9'
 
 # Finit difference Electromagnetic codes
 em1d = Extension("em1d",
